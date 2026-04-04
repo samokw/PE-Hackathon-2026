@@ -9,7 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- (move items here while developing; cut a dated section when you tag a release)
+- **CI/CD:** GitHub Actions workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) — on push to `main`, SSH into a DigitalOcean Droplet, `git pull`, `uv sync`, and restart the `hackathon` systemd service
+- **README:** setup with `uv`, clone URL (`github.com/samokw/PE-Hackathon-2026`), Docker PostgreSQL (ports and `.env`), mermaid App→PostgreSQL diagram, and API endpoint tables
+
+### Changed
+
+- **`run.py`:** `db.create_tables([User, Url, UrlEvent], safe=True)` so restarts do not fail on existing tables; single `create_app()` before `create_tables` and `app.run()`
 
 ## [0.1.0] - 2026-04-03
 
