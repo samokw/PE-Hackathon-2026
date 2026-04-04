@@ -7,12 +7,15 @@ from app.models.users import User
 
 def load_csv(filepath):
     """
-    Load users from CSV. Does not insert ``id`` — Postgres assigns ids so the
-    sequence stays valid.
+    Read a user CSV file and save each row to the database.
 
-    If the CSV has an ``id`` column, returns a mapping ``{old_csv_id: new_db_id}``
-    (match on username + email) for remapping foreign keys in other seed files.
-    Otherwise returns an empty dict.
+    The id values in the file are not saved; the database creates new ids for
+    each user. That way the next user you add through the app gets a correct id.
+
+    If the file includes an id column, this function also returns a dictionary
+    that maps each old id from the file to the new id in the database (found by
+    username and email). You can use that when loading other tables that still
+    reference the old ids. If there is no id column, it returns an empty dict.
     """
     with open(filepath, newline="") as f:
         reader = csv.DictReader(f)
