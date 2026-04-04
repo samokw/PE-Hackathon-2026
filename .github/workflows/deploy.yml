@@ -17,7 +17,7 @@ jobs:
           username: ${{ secrets.DROPLET_USER }}
           key: ${{ secrets.DROPLET_SSH_KEY }}
           script: |
-            cd PE-Hackathon-2026
+            cd /home/deploy/PE-Hackathon-2026
             git pull origin main
             uv sync
             sudo systemctl restart hackathon
