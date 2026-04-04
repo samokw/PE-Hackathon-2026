@@ -5,6 +5,8 @@ from datetime import datetime
 
 from flask import Blueprint, jsonify, request
 
+from app.models.events import UrlEvent
+from app.models.urls import Url
 from app.models.users import User
 from app.routes.helpers import user_to_dict
 from app.seed import load_csv
@@ -116,3 +118,19 @@ def users_update(user_id):
     user.username = data["username"]
     user.save()
     return jsonify(user_to_dict(user))
+
+
+@users_bp.route("/users/<int:user_id>", methods=["DELETE"])
+def users_delete(user_id):
+    user = User.get_or_none(User.id == user_id)
+    if user is None:
+        return jsonify(error="User not found"), 404
+
+    user_url_ids = Url.select(Url.id).where(Url.user_id == user_id)
+    UrlEvent.delete().where(
+        (UrlEvent.user_id == user_id) | (UrlEvent.url_id.in_(user_url_ids))
+    ).execute()
+    Url.delete().where(Url.user_id == user_id).execute()
+    User.delete().where(User.id == user_id).execute()
+
+    return "", 204
