@@ -5,6 +5,7 @@ from peewee import chunked
 from app.database import db
 from app.models.users import User
 
+
 def load_csv(filepath):
     """
     Read a user CSV file and save each row to the database.
