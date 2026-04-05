@@ -8,7 +8,7 @@ Flask REST API with Peewee ORM and PostgreSQL: users, shortened URLs, events/ana
 
 1. [Quick start (setup)](#quick-start-setup)
 2. [Architecture](#architecture)
-3. [View logs without SSH (Loki + Grafana)](#view-logs-without-ssh-loki--grafana)
+3. [Observability (Loki, Prometheus, Grafana)](#observability-loki-prometheus-grafana)
 4. [API reference](#api-reference)
 5. [Project layout](#project-layout)
 6. [Hackathon / seed data](#hackathon--seed-data)
@@ -158,17 +158,18 @@ flowchart LR
 
 ---
 
-## View logs without SSH (Loki + Grafana)
+## Observability (Loki, Prometheus, Grafana)
 
-Logs are **JSON lines** on stdout; for a browser UI (quest / ops), duplicate them to a file and ship them with **Promtail → Loki → Grafana**.
+Logs are **JSON lines** on stdout; for a browser UI (quest / ops), duplicate them to a file and ship them with **Promtail → Loki → Grafana**. **Prometheus** scrapes **`/metrics`** (same host by default) so Grafana can query counters and process metrics for dashboards (Golden Signals–style traffic and errors).
 
 1. On the server, create a log directory and set in `.env`:
    - `LOG_FILE=/var/log/hackathon/app.log`
 2. Ensure the user running the API can write that path (see [`observability/README.md`](observability/README.md)).
 3. From [`observability/`](observability/): `docker compose up -d`
-4. Open **Grafana** at `http://YOUR_SERVER:3000` → **Explore** → **Loki** → query `{job="hackathon"}`.
+4. Open **Grafana** at `http://YOUR_SERVER:3000` → **Explore** → **Loki** (`{job="hackathon"}`) or **Prometheus** (`http_requests_total`).
+5. Optional: **Prometheus** UI at `http://YOUR_SERVER:9090` → **Status → Targets** to confirm the scrape is **UP**.
 
-Details, ports, and security notes: **[observability/README.md](observability/README.md)**.
+Details, ports, scrape configuration, and security notes: **[observability/README.md](observability/README.md)**.
 
 ---
 
@@ -226,7 +227,7 @@ PE-Hackathon-2026/
 │   ├── routes/helpers.py    # JSON serializers
 │   └── seed.py              # load_csv() for users
 ├── .env.example
-├── observability/           # Docker Compose: Loki, Promtail, Grafana
+├── observability/           # Docker Compose: Loki, Promtail, Prometheus, Grafana
 ├── pyproject.toml
 ├── run.py                   # uv run run.py — serves app, create_tables
 └── README.md

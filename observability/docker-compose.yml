@@ -1,15 +1,32 @@
-# Loki + Promtail + Grafana — view API JSON logs in a browser (no SSH).
+# Loki + Promtail + Grafana + Prometheus — logs in Grafana; metrics scraped and queryable.
 #
 # On the Droplet:
 #   1. Create log dir and point the app at it:  sudo mkdir -p /var/log/hackathon && sudo chown $USER:$USER /var/log/hackathon
 #   2. Set LOG_FILE=/var/log/hackathon/app.log for the hackathon systemd service (and restart).
 #   3. From this directory:  docker compose up -d
-#   4. Open http://YOUR_DROPLET_IP:3000 → Explore → Loki → query {job="hackathon"}
+#   4. Open http://YOUR_DROPLET_IP:3000 → Explore → Loki / Prometheus
+#   5. Prometheus UI: http://YOUR_DROPLET_IP:9090 (targets: Status → Targets)
 #
 # Security: Grafana has anonymous admin enabled for the quest demo. Do not expose :3000
 # to the public internet without auth, firewall, or VPN.
 
 services:
+  prometheus:
+    image: prom/prometheus:v2.48.1
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - observability
+
   loki:
     image: grafana/loki:2.9.4
     command: -config.file=/etc/loki/local-config.yaml
@@ -46,11 +63,13 @@ services:
       - ./grafana/provisioning:/etc/grafana/provisioning
     depends_on:
       - loki
+      - prometheus
     networks:
       - observability
 
 volumes:
   loki_data:
+  prometheus_data:
 
 networks:
   observability:
