@@ -1,0 +1,57 @@
+# Loki + Promtail + Grafana — view API JSON logs in a browser (no SSH).
+#
+# On the Droplet:
+#   1. Create log dir and point the app at it:  sudo mkdir -p /var/log/hackathon && sudo chown $USER:$USER /var/log/hackathon
+#   2. Set LOG_FILE=/var/log/hackathon/app.log for the hackathon systemd service (and restart).
+#   3. From this directory:  docker compose up -d
+#   4. Open http://YOUR_DROPLET_IP:3000 → Explore → Loki → query {job="hackathon"}
+#
+# Security: Grafana has anonymous admin enabled for the quest demo. Do not expose :3000
+# to the public internet without auth, firewall, or VPN.
+
+services:
+  loki:
+    image: grafana/loki:2.9.4
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./loki-config.yaml:/etc/loki/local-config.yaml
+      - loki_data:/loki
+    ports:
+      - "3100:3100"
+    networks:
+      - observability
+
+  promtail:
+    image: grafana/promtail:2.9.4
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      - ./promtail-config.yml:/etc/promtail/config.yml
+      - /var/log/hackathon:/var/log/hackathon:ro
+    depends_on:
+      - loki
+    networks:
+      - observability
+
+  grafana:
+    image: grafana/grafana:10.2.3
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_DEFAULT_THEME: dark
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - loki
+    networks:
+      - observability
+
+volumes:
+  loki_data:
+
+networks:
+  observability:
+    driver: bridge
