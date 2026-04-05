@@ -32,7 +32,7 @@ docker compose up -d
 
 - **Grafana:** `http://SERVER_IP:3000` — login `admin` / `admin` (change on first login), or use anonymous (enabled for demo).
 - **Explore → Loki** — try: `{job="hackathon"}` or `{service="api"}`.
-- **Explore → Prometheus** — try: `http_requests_total`, `http_errors_total`, `process_cpu_seconds_total`.
+- **Explore → Prometheus** — try: `http_requests_total`, `http_request_duration_seconds_*`, `http_errors_total`, `process_cpu_seconds_total`.
 - **Prometheus UI:** `http://SERVER_IP:9090` — **Status → Targets** should show `hackathon-api` as **UP** if the API is listening on the host at port 5000.
 - **Promtail** tails `/var/log/hackathon/*.log` inside the container (host path mounted read-only).
 

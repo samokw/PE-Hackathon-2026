@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CI/CD:** GitHub Actions workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) — on push to `main`, SSH into a DigitalOcean Droplet, `git pull`, `uv sync`, and restart the `hackathon` systemd service
 - **README:** setup with `uv`, clone URL (`github.com/samokw/PE-Hackathon-2026`), Docker PostgreSQL (ports and `.env`), mermaid App→PostgreSQL diagram, API endpoint tables, and **view logs without SSH** (Loki / Grafana) overview
 - **Structured logging:** `structlog` JSON lines to stdout; per-request `http_request` (method, path, status, duration) and `http_request_error` on exceptions; domain events in routes, `app/seed.py`, `app/database.py`, and `run.py`
-- **`GET /metrics`:** Prometheus text format via `prometheus_client` (default registry + `http_requests_total`, `http_errors_total`)
+- **`GET /metrics`:** Prometheus text format via `prometheus_client` (default registry + `http_requests_total`, `http_errors_total`, `http_request_duration_seconds` histogram)
 - **Observability stack:** optional `LOG_FILE` env duplicates JSON logs to a file for **Promtail → Loki → Grafana**; [`observability/`](observability/) Docker Compose, Loki/Promtail configs, Grafana Loki datasource provisioning, and [`observability/README.md`](observability/README.md)
 
 ### Changed

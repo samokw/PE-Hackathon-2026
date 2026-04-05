@@ -6,7 +6,12 @@ from flask import Flask, g, jsonify, request
 
 from app.database import init_db
 from app.logging_config import configure_logging, new_request_id
-from app.metrics import http_errors_total, http_requests_total, metrics_response
+from app.metrics import (
+    http_errors_total,
+    http_request_duration_seconds,
+    http_requests_total,
+    metrics_response,
+)
 from app.routes import register_routes
 
 log = structlog.get_logger("app")
@@ -44,6 +49,11 @@ def create_app():
 
         if request.path != "/metrics":
             endpoint = request.endpoint or "unknown"
+            if hasattr(g, "_request_started"):
+                http_request_duration_seconds.labels(
+                    method=request.method,
+                    endpoint=endpoint,
+                ).observe(time.perf_counter() - g._request_started)
             http_requests_total.labels(
                 method=request.method,
                 endpoint=endpoint,

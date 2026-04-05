@@ -1,8 +1,14 @@
 """Prometheus metrics (text format at GET /metrics)."""
 
-from prometheus_client import CONTENT_TYPE_LATEST, Counter, generate_latest, REGISTRY
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest, REGISTRY
 
 # Custom application counters (process CPU/RAM come from default REGISTRY collectors where available)
+http_request_duration_seconds = Histogram(
+    "http_request_duration_seconds",
+    "HTTP request duration in seconds",
+    ("method", "endpoint"),
+)
+
 http_requests_total = Counter(
     "http_requests_total",
     "Total HTTP requests handled",
