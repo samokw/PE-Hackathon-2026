@@ -6,6 +6,7 @@ from flask import Flask, g, jsonify, request
 
 from app.database import init_db
 from app.logging_config import configure_logging, new_request_id
+from app.metrics import http_errors_total, http_requests_total, metrics_response
 from app.routes import register_routes
 
 log = structlog.get_logger("app")
@@ -26,6 +27,7 @@ def create_app():
             component="http",
         )
         g._request_started = time.perf_counter()
+        g._metrics_error_recorded = False
 
     @app.after_request
     def _log_request(response):
@@ -39,6 +41,18 @@ def create_app():
             status=response.status_code,
             duration_ms=duration_ms,
         )
+
+        if request.path != "/metrics":
+            endpoint = request.endpoint or "unknown"
+            http_requests_total.labels(
+                method=request.method,
+                endpoint=endpoint,
+                status=str(response.status_code),
+            ).inc()
+            if response.status_code >= 500:
+                http_errors_total.labels(endpoint=endpoint, kind="5xx").inc()
+                g._metrics_error_recorded = True
+
         return response
 
     @app.teardown_request
@@ -52,6 +66,13 @@ def create_app():
                 exc_type=type(exc).__name__,
                 exc_info=True,
             )
+            if request.path != "/metrics" and not getattr(
+                g, "_metrics_error_recorded", False
+            ):
+                http_errors_total.labels(
+                    endpoint=request.endpoint or "unknown",
+                    kind="exception",
+                ).inc()
 
     init_db(app)
 
@@ -64,5 +85,9 @@ def create_app():
     @app.route("/health")
     def health():
         return jsonify(status="ok")
+
+    @app.route("/metrics")
+    def metrics():
+        return metrics_response()
 
     return app

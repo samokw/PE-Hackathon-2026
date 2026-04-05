@@ -161,11 +161,12 @@ flowchart LR
 
 Base URL: `http://127.0.0.1:5000` (default Flask port) unless you change it.
 
-### Health
+### Health & metrics
 
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/health` | Liveness check. Response: `{"status": "ok"}`. |
+| `GET` | `/metrics` | Prometheus text format: default process/Python collectors + `http_requests_total`, `http_errors_total`. |
 
 ### Users
 
