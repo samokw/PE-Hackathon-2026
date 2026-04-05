@@ -2,6 +2,7 @@ import secrets
 import string
 from datetime import datetime
 
+import structlog
 from flask import Blueprint, jsonify, redirect, request
 
 from app.models.events import UrlEvent
@@ -10,6 +11,7 @@ from app.models.users import User
 from app.routes.helpers import url_to_dict
 
 urls_bp = Blueprint("urls", __name__)
+log = structlog.get_logger(__name__)
 
 _ALPHABET = string.ascii_letters + string.digits
 
@@ -19,6 +21,11 @@ def _generate_short_code(length: int = 6) -> str:
         code = "".join(secrets.choice(_ALPHABET) for _ in range(length))
         if not Url.select().where(Url.short_code == code).exists():
             return code
+    log.error(
+        "short_code_generation_exhausted",
+        attempts=128,
+        component="urls",
+    )
     raise RuntimeError("unable to generate unique short_code")
 
 
@@ -59,10 +66,16 @@ def urls_create():
     data = request.get_json(silent=True)
     err = _validate_url_create(data)
     if err:
+        log.warning("url_create_validation_failed", errors=err, component="urls")
         return jsonify(err), 400
 
     user = User.get_or_none(User.id == data["user_id"])
     if user is None:
+        log.info(
+            "url_create_user_missing",
+            user_id=data["user_id"],
+            component="urls",
+        )
         return jsonify({"user_id": "user does not exist"}), 404
 
     now = datetime.utcnow()
@@ -77,6 +90,13 @@ def urls_create():
         updated_at=now,
     )
 
+    log.info(
+        "url_created",
+        url_id=url.id,
+        short_code=url.short_code,
+        user_id=user.id,
+        component="urls",
+    )
     return jsonify(url_to_dict(url)), 201
 
 
@@ -96,6 +116,12 @@ def urls_list():
 def urls_redirect(short_code):
     url_record = Url.get_or_none(Url.short_code == short_code)
     if url_record is None or not url_record.is_active:
+        log.info(
+            "url_redirect_miss",
+            short_code=short_code,
+            reason="not_found" if url_record is None else "inactive",
+            component="urls",
+        )
         return jsonify(error="URL not found"), 404
     return redirect(url_record.original_url, code=302)
 
@@ -104,6 +130,7 @@ def urls_redirect(short_code):
 def urls_get(url_id):
     url_record = Url.get_or_none(Url.id == url_id)
     if url_record is None:
+        log.info("url_not_found", url_id=url_id, component="urls")
         return jsonify(error="URL not found"), 404
     return jsonify(url_to_dict(url_record))
 
@@ -112,10 +139,12 @@ def urls_get(url_id):
 def urls_update(url_id):
     url_record = Url.get_or_none(Url.id == url_id)
     if url_record is None:
+        log.info("url_not_found", url_id=url_id, component="urls")
         return jsonify(error="URL not found"), 404
 
     data = request.get_json(silent=True)
     if data is None or not isinstance(data, dict):
+        log.warning("url_update_bad_body", url_id=url_id, component="urls")
         return jsonify({"_": "expected JSON object"}), 400
 
     if "title" in data:
@@ -129,6 +158,7 @@ def urls_update(url_id):
 
     url_record.updated_at = datetime.utcnow()
     url_record.save()
+    log.info("url_updated", url_id=url_id, component="urls")
     return jsonify(url_to_dict(url_record))
 
 
@@ -136,9 +166,11 @@ def urls_update(url_id):
 def urls_delete(url_id):
     url_record = Url.get_or_none(Url.id == url_id)
     if url_record is None:
+        log.info("url_not_found", url_id=url_id, component="urls")
         return jsonify(error="URL not found"), 404
 
     UrlEvent.delete().where(UrlEvent.url_id == url_id).execute()
     Url.delete().where(Url.id == url_id).execute()
 
+    log.info("url_deleted", url_id=url_id, component="urls")
     return "", 204

@@ -1,6 +1,7 @@
 import json
 from datetime import datetime
 
+import structlog
 from flask import Blueprint, jsonify, request
 
 from app.models.events import UrlEvent
@@ -9,6 +10,7 @@ from app.models.users import User
 from app.routes.helpers import event_to_dict
 
 events_bp = Blueprint("events", __name__)
+log = structlog.get_logger(__name__)
 
 
 def _validate_event_create(data):
@@ -45,14 +47,25 @@ def events_create():
     data = request.get_json(silent=True)
     err = _validate_event_create(data)
     if err:
+        log.warning("event_create_validation_failed", errors=err, component="events")
         return jsonify(err), 400
 
     url = Url.get_or_none(Url.id == data["url_id"])
     if url is None:
+        log.info(
+            "event_create_url_missing",
+            url_id=data["url_id"],
+            component="events",
+        )
         return jsonify({"url_id": "url does not exist"}), 404
 
     user = User.get_or_none(User.id == data["user_id"])
     if user is None:
+        log.info(
+            "event_create_user_missing",
+            user_id=data["user_id"],
+            component="events",
+        )
         return jsonify({"user_id": "user does not exist"}), 404
 
     now = datetime.utcnow()
@@ -64,4 +77,12 @@ def events_create():
         details=json.dumps(data["details"]),
     )
 
+    log.info(
+        "event_created",
+        event_id=event.id,
+        event_type=event.event_type,
+        url_id=url.id,
+        user_id=user.id,
+        component="events",
+    )
     return jsonify(event_to_dict(event)), 201

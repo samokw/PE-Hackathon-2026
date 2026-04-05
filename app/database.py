@@ -1,8 +1,10 @@
 import os
 
+import structlog
 from peewee import DatabaseProxy, Model, PostgresqlDatabase
 
 db = DatabaseProxy()
+log = structlog.get_logger(__name__)
 
 
 class BaseModel(Model):
@@ -19,6 +21,14 @@ def init_db(app):
         password=os.environ.get("DATABASE_PASSWORD", "postgres"),
     )
     db.initialize(database)
+
+    log.info(
+        "database_configured",
+        host=os.environ.get("DATABASE_HOST", "localhost"),
+        port=int(os.environ.get("DATABASE_PORT", 5432)),
+        database=os.environ.get("DATABASE_NAME", "hackathon_db"),
+        component="database",
+    )
 
     @app.before_request
     def _db_connect():
