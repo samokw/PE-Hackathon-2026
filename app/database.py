@@ -1,6 +1,7 @@
 import os
 
 import structlog
+from flask import jsonify, request
 from peewee import DatabaseProxy, Model, PostgresqlDatabase
 
 db = DatabaseProxy()
@@ -32,7 +33,19 @@ def init_db(app):
 
     @app.before_request
     def _db_connect():
-        db.connect(reuse_if_open=True)
+        # Metrics do not need PostgreSQL; allow scraping when DB is unavailable.
+        if request.path == "/metrics":
+            return None
+        try:
+            db.connect(reuse_if_open=True)
+        except Exception as e:
+            log.error(
+                "database_connection_failed",
+                error=str(e),
+                component="database",
+                exc_info=True,
+            )
+            return jsonify({"error": "Service unavailable"}), 503
 
     @app.teardown_appcontext
     def _db_close(exc):
