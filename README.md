@@ -8,10 +8,11 @@ Flask REST API with Peewee ORM and PostgreSQL: users, shortened URLs, events/ana
 
 1. [Quick start (setup)](#quick-start-setup)
 2. [Architecture](#architecture)
-3. [API reference](#api-reference)
-4. [Project layout](#project-layout)
-5. [Hackathon / seed data](#hackathon--seed-data)
-6. [Extending the project](#extending-the-project)
+3. [View logs without SSH (Loki + Grafana)](#view-logs-without-ssh-loki--grafana)
+4. [API reference](#api-reference)
+5. [Project layout](#project-layout)
+6. [Hackathon / seed data](#hackathon--seed-data)
+7. [Extending the project](#extending-the-project)
 
 ---
 
@@ -157,6 +158,20 @@ flowchart LR
 
 ---
 
+## View logs without SSH (Loki + Grafana)
+
+Logs are **JSON lines** on stdout; for a browser UI (quest / ops), duplicate them to a file and ship them with **Promtail → Loki → Grafana**.
+
+1. On the server, create a log directory and set in `.env`:
+   - `LOG_FILE=/var/log/hackathon/app.log`
+2. Ensure the user running the API can write that path (see [`observability/README.md`](observability/README.md)).
+3. From [`observability/`](observability/): `docker compose up -d`
+4. Open **Grafana** at `http://YOUR_SERVER:3000` → **Explore** → **Loki** → query `{job="hackathon"}`.
+
+Details, ports, and security notes: **[observability/README.md](observability/README.md)**.
+
+---
+
 ## API reference
 
 Base URL: `http://127.0.0.1:5000` (default Flask port) unless you change it.
@@ -211,6 +226,7 @@ PE-Hackathon-2026/
 │   ├── routes/helpers.py    # JSON serializers
 │   └── seed.py              # load_csv() for users
 ├── .env.example
+├── observability/           # Docker Compose: Loki, Promtail, Grafana
 ├── pyproject.toml
 ├── run.py                   # uv run run.py — serves app, create_tables
 └── README.md
