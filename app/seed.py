@@ -1,9 +1,12 @@
 import csv
 
+import structlog
 from peewee import chunked
 
 from app.database import db
 from app.models.users import User
+
+log = structlog.get_logger(__name__)
 
 
 def load_csv(filepath):
@@ -51,4 +54,10 @@ def load_csv(filepath):
             )
             mapping[old_id] = u.id
 
+    log.info(
+        "users_csv_loaded",
+        row_count=len(insert_rows),
+        id_mapping_size=len(mapping),
+        component="seed",
+    )
     return mapping
